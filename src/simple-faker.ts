@@ -137,18 +137,13 @@ export class SimpleFaker {
       seed?: number;
     } = {}
   ) {
-    const {
-      seed: originalSeed,
-      seed = randomSeed(),
-      randomizer: originalRandomizer,
-      randomizer = generateMersenne53Randomizer(seed),
-    } = options;
+    const { seed, randomizer } = options;
 
-    if (originalRandomizer != null && originalSeed != null) {
+    if (seed != null && randomizer != null) {
       randomizer.seed(seed);
     }
 
-    this._randomizer = randomizer;
+    this._randomizer = randomizer ?? generateMersenne53Randomizer(seed);
   }
 
   /**
