@@ -132,7 +132,7 @@ export class SimpleFaker {
        *
        * Refer to the `seed()` method for more information.
        *
-       * @default randomSeed()
+       * Defaults to a random seed.
        */
       seed?: number;
     } = {}
