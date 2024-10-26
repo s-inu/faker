@@ -140,7 +140,7 @@ class TestGenerator<
   private callAndVerify<TMethodName extends MethodOf<TModule>>(
     method: TMethodName,
     args: Parameters<TModule[TMethodName]>,
-    extraStackFrames: string[],
+    extraStackFrames: () => string[],
     repetitions: number = 1
   ): void {
     this.setup();
@@ -300,31 +300,48 @@ class TestGenerator<
   }
 }
 
-function collectExtraStackFrames(extraOffset: number = 0): string[] {
+/**
+ * Lazily collects the current call stack with an additional offset.
+ *
+ * Vitest's stacktraces only contain the stacktrace from inside `it(name, () => { here })`.
+ * This method collects the location where the `it` block is created instead of executed.
+ * The stack frames can then later be added to the error stack to provide a more accurate location.
+ *
+ * @param extraOffset The additional offset to add to the column numbers to account for the name of the test.
+ */
+function collectExtraStackFrames(extraOffset: number = 0): () => string[] {
   const stack = new Error('collect').stack;
   if (stack == null) {
-    return [];
+    return () => [];
   }
 
-  return stack
-    .split('\n')
-    .filter((e) => e.replaceAll('\\', '/').includes('/test/'))
-    .filter((e) => !e.replaceAll('\\', '/').includes('/test/support/'))
-    .map((e) =>
-      e.replace(/:(\d+)$/, (_, value: string) => `:${+value + extraOffset}`)
-    );
+  return () =>
+    stack
+      .split('\n')
+      .map((e) => e.replaceAll('\\', '/'))
+      .filter((e) => e.includes('/test/')) // exclude node_modules
+      .filter((e) => !e.includes('/test/support/')) // exclude this file
+      .map((e) =>
+        e.replace(/:(\d+)$/, (_, column: string) => `:${+column + extraOffset}`)
+      );
 }
 
+/**
+ * Modifies the error stack to include the given additional stack frames.
+ *
+ * @param error The error to modify.
+ * @param extraStackFrames The additional stack frames to add after this file.
+ */
 function patchExtraStackFrames(
   error: unknown,
-  extraStackFrames: string[]
+  extraStackFrames: () => string[]
 ): unknown {
   if (error instanceof Error && error.stack != null) {
     const stack = error.stack.split('\n');
     const index = stack.findLastIndex((e) =>
       e.replaceAll('\\', '/').includes('/test/support/')
     );
-    stack.splice(index + 1, 0, ...extraStackFrames);
+    stack.splice(index + 1, 0, ...extraStackFrames());
     error.stack = stack.join('\n');
   }
 
