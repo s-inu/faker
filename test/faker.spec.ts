@@ -1,6 +1,6 @@
 import type { MockInstance } from 'vitest';
 import { describe, expect, it, vi } from 'vitest';
-import { Faker, faker, generateMersenne53Randomizer } from '../src';
+import { Faker, faker, generateMersenne32Randomizer } from '../src';
 import { FakerError } from '../src/errors/faker-error';
 import { keys } from '../src/internal/keys';
 
@@ -105,23 +105,25 @@ describe('faker', () => {
         expect(customFaker.number.int()).toBe(2849657659447330);
         expect(customFaker.number.int()).toBe(1656593383470774);
       });
+    });
 
-      it('should prioritize the randomizer over the seed', () => {
+    describe('randomizer+seed', () => {
+      it('should take apply both the randomizer and seed', () => {
         const customFaker = new Faker({
           locale: {},
-          randomizer: generateMersenne53Randomizer(67890),
-          seed: 12345, // This seed should be ignored
+          randomizer: generateMersenne32Randomizer(67890),
+          seed: 12345,
         });
 
-        expect(customFaker.number.int()).toBe(3319821087749105);
-        expect(customFaker.number.int()).toBe(8108180265059478);
-        expect(customFaker.number.int()).toBe(1714153343835993);
+        expect(customFaker.number.int()).toBe(8373237322874880);
+        expect(customFaker.number.int()).toBe(8017800868134912);
+        expect(customFaker.number.int()).toBe(2849657711493120);
 
-        customFaker.seed(67890);
+        customFaker.seed(12345); // Retry with the expected seed
 
-        expect(customFaker.number.int()).toBe(3319821087749105);
-        expect(customFaker.number.int()).toBe(8108180265059478);
-        expect(customFaker.number.int()).toBe(1714153343835993);
+        expect(customFaker.number.int()).toBe(8373237322874880);
+        expect(customFaker.number.int()).toBe(8017800868134912);
+        expect(customFaker.number.int()).toBe(2849657711493120);
       });
     });
   });
