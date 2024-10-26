@@ -137,9 +137,9 @@ export class SimpleFaker {
       seed?: number;
     } = {}
   ) {
-    const { seed, randomizer } = options;
+    const { randomizer, seed } = options;
 
-    if (seed != null && randomizer != null) {
+    if (randomizer != null && seed != null) {
       randomizer.seed(seed);
     }
 

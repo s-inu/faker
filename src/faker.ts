@@ -172,7 +172,7 @@ export class Faker extends SimpleFaker {
      */
     seed?: number;
   }) {
-    super({ seed: options.seed, randomizer: options.randomizer });
+    super({ randomizer: options.randomizer, seed: options.seed });
 
     let { locale } = options;
 
