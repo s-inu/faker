@@ -134,11 +134,13 @@ class TestGenerator<
    *
    * @param method The method name to call.
    * @param args The arguments to call it with.
+   * @param extraStackFrames Additional stack frames to add into the stacktrace.
    * @param repetitions The number of times to call it.
    */
   private callAndVerify<TMethodName extends MethodOf<TModule>>(
     method: TMethodName,
     args: Parameters<TModule[TMethodName]>,
+    extraStackFrames: string[],
     repetitions: number = 1
   ): void {
     this.setup();
@@ -148,8 +150,12 @@ class TestGenerator<
     }
 
     for (let i = 0; i < repetitions; i++) {
-      const value = callable(...args);
-      expect(value).toMatchSnapshot();
+      try {
+        const value = callable(...args);
+        expect(value).toMatchSnapshot();
+      } catch (error: unknown) {
+        throw patchExtraStackFrames(error, extraStackFrames);
+      }
     }
   }
 
@@ -182,10 +188,12 @@ class TestGenerator<
    */
   itRepeated(method: NoArgsMethodOf<TModule>, repetitions: number): this {
     this.expectNotTested(method);
+    const extraStackFrames = collectExtraStackFrames();
     vi_it(method, () =>
       this.callAndVerify(
         method,
         [] as unknown as Parameters<TModule[NoArgsMethodOf<TModule>]>,
+        extraStackFrames,
         repetitions
       )
     );
@@ -233,7 +241,8 @@ class TestGenerator<
     const tester: MethodTester<TModule[TMethodName]> = {
       it(name: string, ...args: Parameters<TModule[TMethodName]>) {
         expectVariantNotTested(name);
-        vi_it(name, () => callAndVerify(method, args));
+        const extraStackFrames = collectExtraStackFrames(name.length + 7);
+        vi_it(name, () => callAndVerify(method, args, extraStackFrames));
         return tester;
       },
       itRepeated(
@@ -242,7 +251,10 @@ class TestGenerator<
         ...args: Parameters<TModule[TMethodName]>
       ) {
         expectVariantNotTested(name);
-        vi_it(name, () => callAndVerify(method, args, repetitions));
+        const extraStackFrames = collectExtraStackFrames(name.length + 7);
+        vi_it(name, () =>
+          callAndVerify(method, args, extraStackFrames, repetitions)
+        );
         return tester;
       },
     };
@@ -286,6 +298,37 @@ class TestGenerator<
       expect(actual).toEqual(expected);
     });
   }
+}
+
+function collectExtraStackFrames(extraOffset: number = 0): string[] {
+  const stack = new Error('collect').stack;
+  if (stack == null) {
+    return [];
+  }
+
+  return stack
+    .split('\n')
+    .filter((e) => e.replaceAll('\\', '/').includes('/test/'))
+    .filter((e) => !e.replaceAll('\\', '/').includes('/test/support/'))
+    .map((e) =>
+      e.replace(/:(\d+)$/, (_, value: string) => `:${+value + extraOffset}`)
+    );
+}
+
+function patchExtraStackFrames(
+  error: unknown,
+  extraStackFrames: string[]
+): unknown {
+  if (error instanceof Error && error.stack != null) {
+    const stack = error.stack.split('\n');
+    const index = stack.findLastIndex((e) =>
+      e.replaceAll('\\', '/').includes('/test/support/')
+    );
+    stack.splice(index + 1, 0, ...extraStackFrames);
+    error.stack = stack.join('\n');
+  }
+
+  return error;
 }
 
 /**
