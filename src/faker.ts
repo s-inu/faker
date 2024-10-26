@@ -128,7 +128,6 @@ export class Faker extends SimpleFaker {
    * @param options.seed The initial seed to use.
    * The seed can be used to generate reproducible values.
    * Refer to the `seed()` method for more information.
-   * This option is ignored if `randomizer` is specified.
    * Defaults to a random seed.
    *
    * @example
@@ -168,8 +167,6 @@ export class Faker extends SimpleFaker {
      * The seed can be used to generate reproducible values.
      *
      * Refer to the `seed()` method for more information.
-     *
-     * This option is ignored if `randomizer` is specified.
      *
      * @default randomSeed()
      */

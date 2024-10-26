@@ -101,7 +101,6 @@ export class SimpleFaker {
    * @param options.seed The initial seed to use.
    * The seed can be used to generate reproducible values.
    * Refer to the `seed()` method for more information.
-   * This option is ignored if `randomizer` is specified.
    * Defaults to a random seed.
    *
    * @example
@@ -133,17 +132,21 @@ export class SimpleFaker {
        *
        * Refer to the `seed()` method for more information.
        *
-       * This option is ignored if `randomizer` is specified.
-       *
        * @default randomSeed()
        */
       seed?: number;
     } = {}
   ) {
     const {
+      seed: originalSeed,
       seed = randomSeed(),
+      randomizer: originalRandomizer,
       randomizer = generateMersenne53Randomizer(seed),
     } = options;
+
+    if (originalRandomizer != null && originalSeed != null) {
+      randomizer.seed(seed);
+    }
 
     this._randomizer = randomizer;
   }
