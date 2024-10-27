@@ -241,7 +241,9 @@ class TestGenerator<
     const tester: MethodTester<TModule[TMethodName]> = {
       it(name: string, ...args: Parameters<TModule[TMethodName]>) {
         expectVariantNotTested(name);
-        const extraStackFrames = collectExtraStackFrames(name.length + 7);
+        const extraStackFrames = collectExtraStackFrames(
+          /* t. */ `it('${name}', `.length // ...args)
+        );
         vi_it(name, () => callAndVerify(method, args, extraStackFrames));
         return tester;
       },
@@ -251,7 +253,9 @@ class TestGenerator<
         ...args: Parameters<TModule[TMethodName]>
       ) {
         expectVariantNotTested(name);
-        const extraStackFrames = collectExtraStackFrames(name.length + 7);
+        const extraStackFrames = collectExtraStackFrames(
+          /* t. */ `itRepeated('${name}', ${repetitions}, `.length // ...args)
+        );
         vi_it(name, () =>
           callAndVerify(method, args, extraStackFrames, repetitions)
         );
@@ -318,7 +322,7 @@ function collectExtraStackFrames(extraOffset: number = 0): () => string[] {
   return () =>
     stack
       .split('\n')
-      .map((e) => e.replaceAll('\\', '/'))
+      .map((e) => e.replaceAll('\\', '/')) // Windows to Linux paths
       .filter((e) => e.includes('/test/')) // exclude node_modules
       .filter((e) => !e.includes('/test/support/')) // exclude this file
       .map((e) =>
@@ -327,10 +331,10 @@ function collectExtraStackFrames(extraOffset: number = 0): () => string[] {
 }
 
 /**
- * Modifies the error stack to include the given additional stack frames.
+ * Modifies the error stack to include the given additional stack frames after the last occurrence of this file.
  *
  * @param error The error to modify.
- * @param extraStackFrames The additional stack frames to add after this file.
+ * @param extraStackFrames The additional stack frames to add.
  */
 function patchExtraStackFrames(
   error: unknown,
@@ -339,7 +343,9 @@ function patchExtraStackFrames(
   if (error instanceof Error && error.stack != null) {
     const stack = error.stack.split('\n');
     const index = stack.findLastIndex((e) =>
-      e.replaceAll('\\', '/').includes('/test/support/')
+      e
+        .replaceAll('\\', '/') // Windows to Linux paths
+        .includes('/test/support/')
     );
     stack.splice(index + 1, 0, ...extraStackFrames());
     error.stack = stack.join('\n');
