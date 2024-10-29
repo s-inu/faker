@@ -9,6 +9,7 @@ console.log('VITEST_SEQUENCE_SEED', VITEST_SEQUENCE_SEED);
 export default defineConfig({
   test: {
     setupFiles: ['test/setup.ts'],
+    include: ['test/**/*.spec.ts'],
     coverage: {
       all: true,
       provider: 'v8',
